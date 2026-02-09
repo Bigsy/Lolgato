@@ -17,6 +17,20 @@ struct AutomationSettingsView: View {
                 Text("Turn on lights when camera is in use.")
             }
 
+            settingRow(label: "Brightness:") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Boost brightness when camera is active",
+                           isOn: $appState.boostBrightnessOnCamera)
+                    if appState.boostBrightnessOnCamera {
+                        Stepper("Increase by \(appState.cameraBrightnessBoostPercent)%",
+                                value: $appState.cameraBrightnessBoostPercent,
+                                in: 5...100, step: 5)
+                    }
+                }
+            } caption: {
+                Text("Increase light brightness when webcam is in use.")
+            }
+
             settingRow(label: "Sleep:") {
                 Toggle("Lights on and off automatically", isOn: $appState.lightsOffOnSleep)
             } caption: {
@@ -88,6 +102,8 @@ struct AutomationSettingsView: View {
 
     private func resetToDefaults() {
         appState.lightsOnWithCamera = false
+        appState.boostBrightnessOnCamera = false
+        appState.cameraBrightnessBoostPercent = 20
         appState.lightsOffOnSleep = false
         appState.syncWithNightShift = false
         appState.wakeOnCameraDetectionEnabled = false

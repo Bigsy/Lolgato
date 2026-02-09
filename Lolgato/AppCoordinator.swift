@@ -8,6 +8,8 @@ class AppState: ObservableObject {
     @AppStorage("lightsOffOnSleep") var lightsOffOnSleep: Bool = false
     @AppStorage("syncWithNightShift") var syncWithNightShift: Bool = false
     @AppStorage("wakeOnCameraDetectionEnabled") var wakeOnCameraDetectionEnabled: Bool = false
+    @AppStorage("boostBrightnessOnCamera") var boostBrightnessOnCamera: Bool = false
+    @AppStorage("cameraBrightnessBoostPercent") var cameraBrightnessBoostPercent: Int = 20
 
     @AppStorage("wakeOnCameraInfoJSON") private var wakeOnCameraInfoJSON: String = ""
 
@@ -77,6 +79,10 @@ class AppCoordinator: ObservableObject {
         setupBindings()
         setupShortcuts()
 
+        cameraDetector.updateMonitoring(
+            enabled: appState.lightsOnWithCamera || appState.boostBrightnessOnCamera
+        )
+
         Task { @MainActor in
             deviceManager.loadDevicesFromPersistentStorage()
             deviceManager.startDiscovery()
@@ -91,9 +97,12 @@ class AppCoordinator: ObservableObject {
 
     private func setupBindings() {
         appState.objectWillChange
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self else { return }
-                self.cameraDetector.updateMonitoring(enabled: self.appState.lightsOnWithCamera)
+                let needsMonitoring = self.appState.lightsOnWithCamera
+                    || self.appState.boostBrightnessOnCamera
+                self.cameraDetector.updateMonitoring(enabled: needsMonitoring)
             }
             .store(in: &cancellables)
     }
