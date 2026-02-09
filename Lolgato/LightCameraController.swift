@@ -14,6 +14,7 @@ class LightCameraController {
     private var preBoostedBrightness: [NWEndpoint: Int] = [:]
     private var previousBoostEnabled: Bool = false
     private var previousBoostPercent: Int = 20
+    private var previousLightsOnWithCamera: Bool = false
 
     init(deviceManager: ElgatoDeviceManager,
          appState: AppState,
@@ -24,6 +25,7 @@ class LightCameraController {
         self.cameraStatusPublisher = cameraStatusPublisher
         self.previousBoostEnabled = appState.boostBrightnessOnCamera
         self.previousBoostPercent = appState.cameraBrightnessBoostPercent
+        self.previousLightsOnWithCamera = appState.lightsOnWithCamera
         setupSubscriptions()
     }
 
@@ -48,11 +50,13 @@ class LightCameraController {
         let currentBoostPercent = appState.cameraBrightnessBoostPercent
         let currentLightsOn = appState.lightsOnWithCamera
 
-        // Handle lightsOnWithCamera changes
-        if currentLightsOn, isCameraActive {
-            turnOnAllLights()
-        } else if !currentLightsOn {
-            turnOffControlledLights()
+        // Handle lightsOnWithCamera changes (only on actual change)
+        if currentLightsOn != previousLightsOnWithCamera {
+            if currentLightsOn, isCameraActive {
+                turnOnAllLights()
+            } else if !currentLightsOn {
+                turnOffControlledLights()
+            }
         }
 
         // Handle brightness boost changes
@@ -70,6 +74,7 @@ class LightCameraController {
             }
         }
 
+        previousLightsOnWithCamera = currentLightsOn
         previousBoostEnabled = currentBoostEnabled
         previousBoostPercent = currentBoostPercent
     }
@@ -98,16 +103,16 @@ class LightCameraController {
     private func applyBrightnessBoost() {
         let boostPercent = appState.cameraBrightnessBoostPercent
         for device in deviceManager.devices where device.isOnline && device.isManaged {
-            Task {
+            Task { @MainActor in
                 do {
                     try await device.fetchLightInfo()
                     let originalBrightness = device.brightness
-                    preBoostedBrightness[device.endpoint] = originalBrightness
+                    self.preBoostedBrightness[device.endpoint] = originalBrightness
                     let boosted = min(originalBrightness + boostPercent, 100)
                     try await device.setBrightness(boosted)
-                    logger.info("Boosted brightness for \(device.name, privacy: .public): \(originalBrightness) -> \(boosted)")
+                    self.logger.info("Boosted brightness for \(device.name, privacy: .public): \(originalBrightness) -> \(boosted)")
                 } catch {
-                    logger.error("Failed to boost brightness for \(device.name, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                    self.logger.error("Failed to boost brightness for \(device.name, privacy: .public): \(error.localizedDescription, privacy: .public)")
                 }
             }
         }
@@ -145,18 +150,18 @@ class LightCameraController {
 
     private func checkAndTurnOnLights() {
         for device in deviceManager.devices where device.isOnline {
-            Task {
+            Task { @MainActor in
                 do {
                     try await device.fetchLightInfo()
                     if !device.isOn {
                         try await device.turnOn()
-                        lightsControlledByCamera.insert(device)
-                        logger.info("Turned on device: \(device.name, privacy: .public)")
+                        self.lightsControlledByCamera.insert(device)
+                        self.logger.info("Turned on device: \(device.name, privacy: .public)")
                     } else {
-                        logger.info("Device already on: \(device.name, privacy: .public)")
+                        self.logger.info("Device already on: \(device.name, privacy: .public)")
                     }
                 } catch {
-                    logger
+                    self.logger
                         .error(
                             "Failed to check or turn on device: \(device.name, privacy: .public). Error: \(error.localizedDescription, privacy: .public)"
                         )
@@ -186,13 +191,13 @@ class LightCameraController {
 
     private func turnOnAllLights() {
         for device in deviceManager.devices where device.isOnline {
-            Task {
+            Task { @MainActor in
                 do {
                     try await device.turnOn()
-                    lightsControlledByCamera.insert(device)
-                    logger.info("Turned on device: \(device.name, privacy: .public)")
+                    self.lightsControlledByCamera.insert(device)
+                    self.logger.info("Turned on device: \(device.name, privacy: .public)")
                 } catch {
-                    logger
+                    self.logger
                         .error(
                             "Failed to turn on device: \(device.name, privacy: .public). Error: \(error.localizedDescription, privacy: .public)"
                         )
