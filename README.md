@@ -26,8 +26,7 @@ the standard Elgato Control Center software.
 ### Homebrew
 
 ```
-brew tap Bigsy/tap
-brew install lolgato
+brew install Bigsy/tap/bigsy-lolgato
 ```
 
 ### Manual

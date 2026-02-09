@@ -76,8 +76,8 @@ jobs:
           cd tap
           mkdir -p Formula
 
-          cat > Formula/lolgato.rb << EOF
-          class Lolgato < Formula
+          cat > Formula/bigsy-lolgato.rb << EOF
+          class BigsyLolgato < Formula
             desc "Control Elgato lights from the menu bar"
             homepage "https://github.com/Bigsy/Lolgato"
             url "https://github.com/Bigsy/Lolgato/archive/refs/tags/v${VERSION}.tar.gz"
@@ -104,8 +104,9 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/lolgato.rb
-          git commit -m "update lolgato to ${VERSION}"
+          git add Formula/bigsy-lolgato.rb
+          git rm -f Formula/lolgato.rb || true
+          git commit -m "update bigsy-lolgato to ${VERSION}"
           git push
         env:
           TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
