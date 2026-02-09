@@ -21,13 +21,20 @@ the standard Elgato Control Center software.
   - Increase and decrease brightness of all lights
   - Increase and decrease temperature of all lights
 
-## Download
+## Install
 
-[Latest release v1.7.0: `Lolgato.dmg`](https://github.com/raine/lolgato/releases/latest/download/Lolgato.dmg)
+### Homebrew
+
+```
+brew tap Bigsy/tap
+brew install lolgato
+```
+
+### Manual
+
+[Latest release v1.8.0: `Lolgato.dmg`](https://github.com/Bigsy/Lolgato/releases/latest/download/Lolgato.dmg)
 
 Requires macOS 14 or later.
-
-See [CHANGELOG.md](CHANGELOG.md) for release notes and version history.
 
 ## Screenshots
 
