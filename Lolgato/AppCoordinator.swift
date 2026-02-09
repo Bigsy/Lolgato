@@ -10,6 +10,8 @@ class AppState: ObservableObject {
     @AppStorage("wakeOnCameraDetectionEnabled") var wakeOnCameraDetectionEnabled: Bool = false
     @AppStorage("boostBrightnessOnCamera") var boostBrightnessOnCamera: Bool = false
     @AppStorage("cameraBrightnessBoostPercent") var cameraBrightnessBoostPercent: Int = 20
+    @AppStorage("brightnessStepPercent") var brightnessStepPercent: Int = 5
+    @AppStorage("temperatureStepKelvin") var temperatureStepKelvin: Int = 500
 
     @AppStorage("wakeOnCameraInfoJSON") private var wakeOnCameraInfoJSON: String = ""
 
@@ -116,34 +118,37 @@ class AppCoordinator: ObservableObject {
 
         KeyboardShortcuts.onKeyUp(for: .increaseBrightness) { [weak self] in
             Task { @MainActor in
-                guard let deviceManager = self?.deviceManager else { return }
+                guard let self, let deviceManager = Optional(self.deviceManager) else { return }
+                let brightnessStep = max(1, min(self.appState.brightnessStepPercent, 25))
                 let currentBrightness = deviceManager.devices
                     .filter(\.isOnline)
                     .map(\.brightness)
                     .max() ?? 0
-                let newBrightness = min(currentBrightness + 10, 100)
+                let newBrightness = min(currentBrightness + brightnessStep, 100)
                 await deviceManager.setAllLightsBrightness(newBrightness)
             }
         }
 
         KeyboardShortcuts.onKeyUp(for: .decreaseBrightness) { [weak self] in
             Task { @MainActor in
-                guard let deviceManager = self?.deviceManager else { return }
+                guard let self, let deviceManager = Optional(self.deviceManager) else { return }
+                let brightnessStep = max(1, min(self.appState.brightnessStepPercent, 25))
                 let currentBrightness = deviceManager.devices
                     .filter(\.isOnline)
                     .map(\.brightness)
                     .max() ?? 0
-                let newBrightness = max(currentBrightness - 10, 0)
+                let newBrightness = max(currentBrightness - brightnessStep, 0)
                 await deviceManager.setAllLightsBrightness(newBrightness)
             }
         }
 
         KeyboardShortcuts.onKeyUp(for: .increaseTemperature) { [weak self] in
             Task { @MainActor in
-                guard let deviceManager = self?.deviceManager else { return }
+                guard let self, let deviceManager = Optional(self.deviceManager) else { return }
+                let temperatureStep = max(100, min(self.appState.temperatureStepKelvin, 1000))
 
                 // Disable night shift sync when manually adjusting temperature
-                if let self, self.appState.syncWithNightShift {
+                if self.appState.syncWithNightShift {
                     self.appState.syncWithNightShift = false
                 }
 
@@ -151,17 +156,18 @@ class AppCoordinator: ObservableObject {
                     .filter(\.isOnline)
                     .map(\.temperature)
                     .max() ?? 4000
-                let newTemp = min(currentTemp + 500, 7000)
+                let newTemp = min(currentTemp + temperatureStep, 7000)
                 await deviceManager.setAllLightsTemperature(newTemp)
             }
         }
 
         KeyboardShortcuts.onKeyUp(for: .decreaseTemperature) { [weak self] in
             Task { @MainActor in
-                guard let deviceManager = self?.deviceManager else { return }
+                guard let self, let deviceManager = Optional(self.deviceManager) else { return }
+                let temperatureStep = max(100, min(self.appState.temperatureStepKelvin, 1000))
 
                 // Disable night shift sync when manually adjusting temperature
-                if let self, self.appState.syncWithNightShift {
+                if self.appState.syncWithNightShift {
                     self.appState.syncWithNightShift = false
                 }
 
@@ -169,7 +175,7 @@ class AppCoordinator: ObservableObject {
                     .filter(\.isOnline)
                     .map(\.temperature)
                     .max() ?? 4000
-                let newTemp = max(currentTemp - 500, 2900)
+                let newTemp = max(currentTemp - temperatureStep, 2900)
                 await deviceManager.setAllLightsTemperature(newTemp)
             }
         }

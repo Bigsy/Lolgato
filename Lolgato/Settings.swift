@@ -19,7 +19,7 @@ struct SettingsView: View {
                     Label("Devices", systemImage: "lightbulb")
                 }
 
-            KeyboardShortcutsView()
+            KeyboardShortcutsView(appState: appState)
                 .tabItem {
                     Label("Shortcuts", systemImage: "keyboard")
                 }
@@ -71,6 +71,8 @@ struct GeneralSettingsView: View {
 }
 
 struct KeyboardShortcutsView: View {
+    @ObservedObject var appState: AppState
+
     var body: some View {
         VStack(spacing: 20) {
             shortcutRow(
@@ -99,6 +101,17 @@ struct KeyboardShortcutsView: View {
                 caption: "Decrease all lights' brightness."
             )
 
+            settingRow(label: "Brightness Step:") {
+                Stepper(
+                    "\(appState.brightnessStepPercent)%",
+                    value: $appState.brightnessStepPercent,
+                    in: 1...25,
+                    step: 1
+                )
+            } caption: {
+                Text("Amount per key press.")
+            }
+
             Divider()
 
             shortcutRow(
@@ -112,6 +125,17 @@ struct KeyboardShortcutsView: View {
                 shortcut: .decreaseTemperature,
                 caption: "Make lights warmer (more yellow)."
             )
+
+            settingRow(label: "Temperature Step:") {
+                Stepper(
+                    "\(appState.temperatureStepKelvin)K",
+                    value: $appState.temperatureStepKelvin,
+                    in: 100...1000,
+                    step: 100
+                )
+            } caption: {
+                Text("Amount per key press.")
+            }
 
             Divider()
             ResetButton(action: resetToDefaults)
@@ -134,6 +158,8 @@ struct KeyboardShortcutsView: View {
         KeyboardShortcuts.reset(.increaseTemperature)
         KeyboardShortcuts.reset(.decreaseTemperature)
         KeyboardShortcuts.reset(.toggleNightShiftSync)
+        appState.brightnessStepPercent = 5
+        appState.temperatureStepKelvin = 500
     }
 }
 
