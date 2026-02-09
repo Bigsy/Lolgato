@@ -26,7 +26,13 @@ the standard Elgato Control Center software.
 ### Homebrew
 
 ```
-brew install Bigsy/tap/bigsy-lolgato
+brew install --cask --no-quarantine Bigsy/tap/bigsy-lolgato
+```
+
+If you see a Gatekeeper warning, run:
+
+```
+xattr -dr com.apple.quarantine /Applications/Lolgato.app
 ```
 
 ### Manual
