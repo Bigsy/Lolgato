@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          xcodebuild -project Lolgato.xcodeproj \
+            -scheme Lolgato \
+            -configuration Release \
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -quiet
+
+      - name: Create GitHub Release
+        run: gh release create "${{ github.ref_name }}" --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew tap
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          TARBALL_URL="https://github.com/${{ github.repository }}/archive/refs/tags/${GITHUB_REF_NAME}.tar.gz"
+          curl -sL "$TARBALL_URL" -o source.tar.gz
+          SHA256=$(shasum -a 256 source.tar.gz | awk '{print $1}')
+
+          git clone https://x-access-token:${TAP_TOKEN}@github.com/Bigsy/homebrew-tap.git tap
+          cd tap
+          mkdir -p Formula
+
+          cat > Formula/lolgato.rb << EOF
+          class Lolgato < Formula
+            desc "Control Elgato lights from the menu bar"
+            homepage "https://github.com/Bigsy/Lolgato"
+            url "https://github.com/Bigsy/Lolgato/archive/refs/tags/v${VERSION}.tar.gz"
+            sha256 "${SHA256}"
+            license "MIT"
+
+            depends_on xcode: ["15.0", :build]
+            depends_on :macos
+
+            def install
+              system "xcodebuild",
+                "-project", "Lolgato.xcodeproj",
+                "-scheme", "Lolgato",
+                "-configuration", "Release",
+                "-derivedDataPath", buildpath/"build",
+                "CODE_SIGN_IDENTITY=-",
+                "CODE_SIGNING_REQUIRED=NO",
+                "CODE_SIGNING_ALLOWED=NO",
+                "-quiet"
+              prefix.install Dir[buildpath/"build/Build/Products/Release/Lolgato.app"]
+            end
+          end
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/lolgato.rb
+          git commit -m "update lolgato to ${VERSION}"
+          git push
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
